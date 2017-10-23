@@ -1,0 +1,6 @@
+cmake_minimum_required(VERSION 2.8)
+project(ThresholdPicker)
+set(CMAKE_BUILD_TYPE Debug)
+find_package(OpenCV REQUIRED)
+add_executable(ThresholdPicker threshold_picker.cpp)
+target_link_libraries(ThresholdPicker ${OpenCV_LIBS})
