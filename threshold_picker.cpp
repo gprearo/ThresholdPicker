@@ -7,12 +7,17 @@
 #define MAX_GRAY_VALUE 255
 
 #define WINDOW_TITLE "Threshold Picker"
+#define TB_LOWER_NAME "Threshold lower value"
+#define TB_UPPER_NAME "Threshold upper value"
 
+//Types of effects - this is used when writing the applied
+//effects to a string
 #define EROSION 3
 #define DILATION 4
 #define OPENING 5
 #define CLOSING 6
 
+//This is the string that hold all applied effects in order
 char *applied_effects = NULL ;
 
 using namespace cv ;
@@ -57,8 +62,8 @@ int main(int argc, char *argv[]) {
 	namedWindow(WINDOW_TITLE, CV_WINDOW_AUTOSIZE) ;
 
 	//Upper threshold value trackbar
-	createTrackbar("Threshold upper value", WINDOW_TITLE, &threshold_upper_value, MAX_BINARY_VALUE, trackbar_event) ;
-	createTrackbar("Threshold lower value", WINDOW_TITLE, &threshold_lower_value, MAX_BINARY_VALUE, trackbar_event) ;
+	createTrackbar(TB_UPPER_NAME, WINDOW_TITLE, &threshold_upper_value, MAX_BINARY_VALUE, trackbar_event) ;
+	createTrackbar(TB_LOWER_NAME, WINDOW_TITLE, &threshold_lower_value, MAX_BINARY_VALUE, trackbar_event) ;
 
 	trackbar_event(0, 0) ;
 
@@ -70,18 +75,24 @@ int main(int argc, char *argv[]) {
 }
 
 
+//Apply dual side threshold on the image with effects applied
+//It does not show the image on the screen!
 void apply_threshold() {
 	cvtColor(modified, gray, CV_BGR2GRAY) ;
 	//Apply a dual side threshold on gray image to binarize it
 	inRange(gray, threshold_lower_value, threshold_upper_value, binary) ;
 }
 
+//Routine to handle the trackbar value change
+//It is used to show the image on screen as well
 void trackbar_event(int , void *) {
 	apply_threshold() ;
 	imshow(WINDOW_TITLE, binary) ;
 	waitKey(1) ;
 }
 
+//Clear all effects applied to the image by loading it again
+//It does clear the string that hold the applied affects too
 void clear_effects() {
 	//Deallocate the modified image and makes a copy of the original
 	modified.deallocate() ;
@@ -91,6 +102,9 @@ void clear_effects() {
 	applied_effects = NULL  ;
 }
 
+//Reads the information about the kernel of the effect to be applied
+//It receives two pointers to ints which will hold the type and the size of
+//the kernel. The type is the same as the opencv library.
 void read_kernel(int *type, int *size) {
 	printf("Which type of kernel do you want?\n"
 			"0 - Rectangular\n"
@@ -103,6 +117,9 @@ void read_kernel(int *type, int *size) {
 }
 
 
+//Update the string that holds all effects applied
+//The operation is defined on the top of this file
+//The kernel type is the same as the opencv library
 void write_effects_str(int operation, int kernel_type, int kernel_size) {
 	char buffer[1024] = "" ;
 
@@ -148,6 +165,10 @@ void write_effects_str(int operation, int kernel_type, int kernel_size) {
 	strcat(applied_effects, buffer) ;
 }
 
+//Reads kernel properties from stdin and
+//applies an erosion with the desired kernel
+//to the image
+//It also updates the string that holds all effects applied
 void apply_erosion() {
 	int type, size ;
 	read_kernel(&type, &size) ;
@@ -158,6 +179,7 @@ void apply_erosion() {
 	write_effects_str(EROSION, type, size) ;	
 }
 
+//The same as apply_erosion, but applies a dilation
 void apply_dilation() {
 	int type, size ;
 	read_kernel(&type, &size) ;
@@ -168,6 +190,8 @@ void apply_dilation() {
 	write_effects_str(DILATION, type, size) ;	
 }
 
+
+//The same as apply_erosion
 void apply_opening() {
 	int type, size ;
 	read_kernel(&type, &size) ;
@@ -178,7 +202,7 @@ void apply_opening() {
 	write_effects_str(OPENING, type, size) ;	
 }
 
-
+//The same as apply_erosion
 void apply_closing() {
 	int type, size ;
 	read_kernel(&type, &size) ;
@@ -189,6 +213,18 @@ void apply_closing() {
 	write_effects_str(CLOSING, type, size) ;	
 }
 
+//changes the trackbars values to the otsu threshold value
+void apply_otsu() {
+	int lower_value = (int) threshold(gray, binary, 0, 255, THRESH_BINARY_INV | THRESH_OTSU) ;	
+	setTrackbarPos(TB_LOWER_NAME, WINDOW_TITLE, lower_value) ;
+	setTrackbarPos(TB_UPPER_NAME, WINDOW_TITLE, 255) ;
+}
+
+
+//Show all possible options
+//read an option from stdin and calls the 
+//desired function
+//It returns zero when exit is selected
 int effects_menu() {
 	printf("Effect menu\n\n"
 			"Choose an option:\n"
@@ -199,7 +235,8 @@ int effects_menu() {
 			"4 - Apply dilation\n"
 			"5 - Apply closing\n"
 			"6 - Apply opening\n"
-			"7 - Change threshold values\n\n"
+			"7 - Change threshold values\n"
+			"8 - Apply Otsu's Binarization\n\n"
 			) ;
 
 	int option = 0 ;
@@ -232,6 +269,9 @@ int effects_menu() {
 		case 7:
 			printf("Use the trackbas to change the threshold values, then press any key on window.\n") ;
 			waitKey(0) ;
+			break ;
+		case 8:
+			apply_otsu() ;
 			break ;
 	}
 
